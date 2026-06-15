@@ -20,6 +20,74 @@ export interface RawCmsRow {
   [key: string]: string;
 }
 
+// A row from the Medicare Claims Quality Measures dataset (one row per measure).
+export interface ClaimsRow {
+  measure_code: string;
+  resident_type: string; // "Short Stay" | "Long Stay"
+  adjusted_score: string;
+  observed_score: string;
+  footnote_for_score: string;
+  [key: string]: string;
+}
+
+// A row from the State US Averages dataset (keyed by state_or_nation).
+export interface AveragesRow {
+  state_or_nation: string;
+  [key: string]: string;
+}
+
+// Claims measure codes for the four hospitalization/ED measures. STR -> Short
+// Stay, LT -> Long Stay (per the brief's mapping hint).
+export const CLAIMS_MEASURE = {
+  strHospitalization: "521", // short-stay rehospitalized after admission (%)
+  strEdVisit: "522", // short-stay outpatient ED visit (%)
+  ltHospitalization: "551", // hospitalizations per 1000 long-stay resident days (rate)
+  ltEdVisit: "552", // outpatient ED visits per 1000 long-stay resident days (rate)
+} as const;
+
+// Matching columns in the State US Averages dataset for those four measures.
+export const AVG_COLUMN = {
+  strHospitalization:
+    "percentage_of_short_stay_residents_who_were_rehospitalized__1d02",
+  strEdVisit: "percentage_of_short_stay_residents_who_had_an_outpatient_em_d911",
+  ltHospitalization: "number_of_hospitalizations_per_1000_longstay_resident_days",
+  ltEdVisit:
+    "number_of_outpatient_emergency_department_visits_per_1000_l_de9d",
+} as const;
+
+// The 12 Hospitalization/ED values. Short-stay measures are percentages;
+// long-stay measures are rates per 1000 resident days. `null` = missing or
+// suppressed (footnoted), rendered as a placeholder.
+export interface FacilityMetrics {
+  strHospitalization: number | null;
+  strHospitalizationNational: number | null;
+  strHospitalizationState: number | null;
+  strEdVisit: number | null;
+  strEdVisitNational: number | null;
+  strEdVisitState: number | null;
+  ltHospitalization: number | null;
+  ltHospitalizationNational: number | null;
+  ltHospitalizationState: number | null;
+  ltEdVisit: number | null;
+  ltEdVisitNational: number | null;
+  ltEdVisitState: number | null;
+}
+
+export const EMPTY_METRICS: FacilityMetrics = {
+  strHospitalization: null,
+  strHospitalizationNational: null,
+  strHospitalizationState: null,
+  strEdVisit: null,
+  strEdVisitNational: null,
+  strEdVisitState: null,
+  ltHospitalization: null,
+  ltHospitalizationNational: null,
+  ltHospitalizationState: null,
+  ltEdVisit: null,
+  ltEdVisitNational: null,
+  ltEdVisitState: null,
+};
+
 // Typed, coerced facility data sourced from the CMS API. Numeric fields are
 // `number | null` (null = missing/suppressed/footnoted by CMS).
 export interface FacilityApiData {
@@ -42,6 +110,8 @@ export interface FacilityApiData {
   healthInspectionRating: number | null;
   staffingRating: number | null;
   qmRating: number | null;
+  /** 12 Hospitalization/ED metrics (bonus). */
+  metrics: FacilityMetrics;
 }
 
 // Star ratings are "1".."5", or "" / a footnote code when suppressed.
@@ -67,7 +137,48 @@ function buildLocation(row: RawCmsRow): string {
   return [street, city, st].filter(Boolean).join(", ");
 }
 
-export function mapRawToFacility(row: RawCmsRow): FacilityApiData {
+// Facility metric value = the risk-adjusted score (data dictionary: "Adjusted
+// Score — the risk-adjusted value for the quality measure"), which is what Care
+// Compare publishes and what feeds the QM star rating. A footnoted (suppressed)
+// or blank score becomes null.
+function claimsScore(row: ClaimsRow | undefined): number | null {
+  if (!row) return null;
+  if (row.footnote_for_score && row.footnote_for_score.trim() !== "") return null;
+  return toNumber(row.adjusted_score);
+}
+
+function avgValue(row: AveragesRow | undefined, column: string): number | null {
+  if (!row) return null;
+  return toNumber(row[column]);
+}
+
+// Merge facility claims rows + national/state average rows into the 12 metrics.
+export function buildMetrics(
+  claims: ClaimsRow[],
+  national: AveragesRow | undefined,
+  state: AveragesRow | undefined,
+): FacilityMetrics {
+  const byCode = new Map(claims.map((r) => [r.measure_code, r]));
+  return {
+    strHospitalization: claimsScore(byCode.get(CLAIMS_MEASURE.strHospitalization)),
+    strHospitalizationNational: avgValue(national, AVG_COLUMN.strHospitalization),
+    strHospitalizationState: avgValue(state, AVG_COLUMN.strHospitalization),
+    strEdVisit: claimsScore(byCode.get(CLAIMS_MEASURE.strEdVisit)),
+    strEdVisitNational: avgValue(national, AVG_COLUMN.strEdVisit),
+    strEdVisitState: avgValue(state, AVG_COLUMN.strEdVisit),
+    ltHospitalization: claimsScore(byCode.get(CLAIMS_MEASURE.ltHospitalization)),
+    ltHospitalizationNational: avgValue(national, AVG_COLUMN.ltHospitalization),
+    ltHospitalizationState: avgValue(state, AVG_COLUMN.ltHospitalization),
+    ltEdVisit: claimsScore(byCode.get(CLAIMS_MEASURE.ltEdVisit)),
+    ltEdVisitNational: avgValue(national, AVG_COLUMN.ltEdVisit),
+    ltEdVisitState: avgValue(state, AVG_COLUMN.ltEdVisit),
+  };
+}
+
+export function mapRawToFacility(
+  row: RawCmsRow,
+  metrics: FacilityMetrics = EMPTY_METRICS,
+): FacilityApiData {
   const beds = toNumber(row.number_of_certified_beds);
   const avgResidents = toNumber(row.average_number_of_residents_per_day);
 
@@ -85,5 +196,6 @@ export function mapRawToFacility(row: RawCmsRow): FacilityApiData {
     healthInspectionRating: toRating(row.health_inspection_rating),
     staffingRating: toRating(row.staffing_rating),
     qmRating: toRating(row.qm_rating),
+    metrics,
   };
 }

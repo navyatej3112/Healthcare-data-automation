@@ -18,6 +18,8 @@ with manual operational inputs, and export a print-ready PDF. No database, no au
   editable.
 - **One-click PDF export** matching the two-column snapshot layout, with the branding
   banner and a clickable Medicare Care Compare link.
+- **12 Hospitalization/ED metrics** (bonus): short-stay (%) and long-stay (per-1000 rate)
+  facility values plus their national and state averages.
 
 > **Note — avoid spaces in the project path.** Next 16's build/dev workers stall at startup
 > when the absolute path contains spaces; run from a space-free path (e.g. `~/faa-app`).
@@ -105,17 +107,29 @@ These resolve ambiguities between the brief, the layout template, and the sample
 | 6 | **CCN** is treated as a **6-character string** end-to-end; validated as `^\d{6}$`, never cast to int. | Data dictionary: CCN is `Text (6)` with possible leading zeros. Verified `015009` round-trips intact. |
 | 7 | **Units** for bonus metrics will be driven by the **data dictionary**, not the sample numbers (short-stay = %, long-stay hosp/ED = rate per 1000 resident days). | Spec §3 + §7: the sample figures are illustrative/stale. |
 
-## CMS dataset
+## CMS datasets
 
-- **Provider Information** — `4pq5-n9py`
-  - Verified live on **2026-06-14** against the catalog metastore (entry last modified
-    2026-05-01). IDs can change on the monthly refresh; re-verify if queries start
-    returning empty/404.
-  - CCN column: `cms_certification_number_ccn`.
-  - Query pattern:
-    `https://data.cms.gov/provider-data/api/1/datastore/query/4pq5-n9py/0?conditions[0][property]=cms_certification_number_ccn&conditions[0][value]={CCN}&conditions[0][operator]==`
-- Claims-Based Quality Measures + State/US Averages dataset IDs (bonus) — **TBD**, to be
-  discovered and verified before the bonus step.
+All three were verified live against the catalog metastore (all last modified 2026-05-01).
+IDs can change on the monthly refresh; re-verify if queries start returning empty/404. The
+CCN column is `cms_certification_number_ccn` across datasets, and the query pattern is
+`.../datastore/query/{datasetId}/0?conditions[0][property]=...&conditions[0][value]=...&conditions[0][operator]==`.
+
+- **Provider Information** — `4pq5-n9py` (MVP fields: name, address, beds, residents, ratings).
+- **Medicare Claims Quality Measures** — `ijh5-nb2v` (facility hospitalization/ED values).
+  Long format: one row per measure with `measure_code`, `resident_type`, and adjusted/observed
+  scores. Codes used: 521 (STR rehospitalization), 522 (STR ED), 551 (LT hospitalizations per
+  1000), 552 (LT ED per 1000).
+- **State US Averages** — `xcdc-v8bm` (national + per-state averages; one row per
+  `state_or_nation`, e.g. `NATION` or `FL`).
+
+**Metric value chosen:** the facility value is the **risk-adjusted score** (data dictionary:
+"Adjusted Score — the risk-adjusted value for the quality measure"), which is what Care Compare
+publishes and what feeds the QM star rating. National/state averages come from the State US
+Averages dataset. **Units** are driven by the data dictionary, not the sample PDF: short-stay
+measures are percentages (1 decimal); long-stay hospitalization/ED are rates per 1000 resident
+days (2 decimals). Suppressed (footnoted) or blank values render as "—", consistent with
+ratings. The claims/averages fetches are best-effort, so a hiccup in either degrades those rows
+to "—" without affecting the MVP fields.
 
 ## Validation (CCN 686123)
 
