@@ -23,6 +23,10 @@ with manual operational inputs, and export a print-ready PDF. No database, no au
 - **On-page visuals** (bonus, web only): star-rating cards and responsive
   facility-vs-national-vs-state comparison charts (Recharts). Short-stay (%) and long-stay
   (per-1000) render in separate charts so the two units never share an axis.
+- **Graceful degradation**: clear messages for invalid CCN, unknown facility, slow/down/
+  malformed CMS responses, and network failure — plus a loading state. The bonus-metric
+  datasets fail independently of the MVP: if they're unavailable those rows show "—" and the
+  UI says so, while the core report still renders.
 
 > **Note — avoid spaces in the project path.** Next 16's build/dev workers stall at startup
 > when the absolute path contains spaces; run from a space-free path (e.g. `~/faa-app`).

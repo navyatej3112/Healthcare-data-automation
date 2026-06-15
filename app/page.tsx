@@ -7,15 +7,19 @@ import { MetricsVisuals } from "./components/MetricsVisuals";
 
 interface ApiResponse {
   ccn: string;
-  datasetId: string;
+  datasetIds: Record<string, string>;
+  metricsAvailable: { claims: boolean; averages: boolean };
   facility: FacilityApiData;
   raw: Record<string, string>;
 }
+
+const CLIENT_TIMEOUT_MS = 25000;
 
 export default function Home() {
   const [ccn, setCcn] = useState("686123");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [metricsNote, setMetricsNote] = useState<string | null>(null);
   const [api, setApi] = useState<FacilityApiData | null>(null);
   const [manual, setManual] = useState<ManualInputs>(EMPTY_MANUAL);
   const [downloading, setDownloading] = useState(false);
@@ -23,19 +27,46 @@ export default function Home() {
 
   async function handleLookup(e: React.FormEvent) {
     e.preventDefault();
+    const trimmed = ccn.trim();
+
+    // Client-side format check for instant feedback (the server validates too).
+    if (!/^\d{6}$/.test(trimmed)) {
+      setApi(null);
+      setMetricsNote(null);
+      setError("Enter a 6-digit CCN (digits only), e.g. 686123.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setMetricsNote(null);
+
+    // Abort a hung request so the UI never spins forever.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CLIENT_TIMEOUT_MS);
     try {
-      const res = await fetch(
-        `/api/facility?ccn=${encodeURIComponent(ccn.trim())}`,
-      );
-      const data = (await res.json()) as ApiResponse | { error: string };
+      const res = await fetch(`/api/facility?ccn=${encodeURIComponent(trimmed)}`, {
+        signal: controller.signal,
+      });
+
+      // Parse defensively — an upstream/platform error may not be JSON.
+      let data: (Partial<ApiResponse> & { error?: string }) | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
+
       if (!res.ok) {
         setApi(null);
-        setError("error" in data ? data.error : "Lookup failed.");
+        setError(
+          data?.error ?? `Lookup failed (HTTP ${res.status}). Please try again.`,
+        );
         return;
       }
-      const facility = (data as ApiResponse).facility;
+
+      const resp = data as ApiResponse;
+      const facility = resp.facility;
       setApi(facility);
       // Reset override + census defaults from the fresh API payload.
       setManual((prev) => ({
@@ -46,10 +77,23 @@ export default function Home() {
             ? String(facility.currentCensusDefault)
             : "",
       }));
-    } catch {
+
+      // Tell the user if the bonus metrics degraded (MVP still complete).
+      const ma = resp.metricsAvailable;
+      if (ma && (!ma.claims || !ma.averages)) {
+        setMetricsNote(
+          "Live hospitalization/ED data is temporarily unavailable, so those rows show “—”. The rest of the report is complete.",
+        );
+      }
+    } catch (err) {
       setApi(null);
-      setError("Network error reaching the proxy.");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("The request timed out. Please check your connection and try again.");
+      } else {
+        setError("Couldn't reach the server. Please check your connection and try again.");
+      }
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   }
@@ -144,6 +188,15 @@ export default function Home() {
             </p>
           )}
         </form>
+
+        {metricsNote && (
+          <p
+            data-testid="metrics-note"
+            className="mt-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+          >
+            {metricsNote}
+          </p>
+        )}
 
         {api && report && <MetricsVisuals api={api} />}
 

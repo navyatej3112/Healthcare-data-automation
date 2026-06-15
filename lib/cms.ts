@@ -23,6 +23,11 @@ export const CCN_PROPERTY = "cms_certification_number_ccn";
 // postal code, or the literal "NATION").
 export const STATE_OR_NATION_PROPERTY = "state_or_nation";
 
+// Base of the CMS Provider Data Catalog. Overridable via env for testing
+// (e.g. pointing at a local mock to simulate upstream failures); defaults to the
+// real catalog in production.
+const CMS_BASE = process.env.CMS_BASE_URL ?? "https://data.cms.gov/provider-data";
+
 // Datastore query endpoint for index 0 (the dataset's primary distribution).
 export const cmsQueryUrl = (datasetId: string) =>
-  `https://data.cms.gov/provider-data/api/1/datastore/query/${datasetId}/0`;
+  `${CMS_BASE}/api/1/datastore/query/${datasetId}/0`;
