@@ -20,6 +20,9 @@ with manual operational inputs, and export a print-ready PDF. No database, no au
   clickable Medicare Care Compare link. The .docx is fully editable (real text + table).
 - **12 Hospitalization/ED metrics** (bonus): short-stay (%) and long-stay (per-1000 rate)
   facility values plus their national and state averages.
+- **On-page visuals** (bonus, web only): star-rating cards and responsive
+  facility-vs-national-vs-state comparison charts (Recharts). Short-stay (%) and long-stay
+  (per-1000) render in separate charts so the two units never share an axis.
 
 > **Note — avoid spaces in the project path.** Next 16's build/dev workers stall at startup
 > when the absolute path contains spaces; run from a space-free path (e.g. `~/faa-app`).
@@ -52,8 +55,11 @@ curl 'http://localhost:3000/api/facility?ccn=686123'
 - **`app/docx/FacilityDocx.ts`** — `docx` document: same content as an editable Word file
   (real text + table + `ExternalHyperlink`). Also loaded dynamically on click. `@react-pdf/renderer`
   and `docx` are runtime dependencies but kept off the critical path via lazy import.
+- **`app/components/MetricsVisuals.tsx`** — on-page rating cards + Recharts comparison charts
+  (web only; not in the exports). Reads the numeric `FacilityApiData`; renders only after a
+  lookup, so it never server-renders. Suppressed metrics are omitted with a caption.
 - **`app/page.tsx`** — client component: CCN lookup, manual inputs, name override, live
-  preview, and the "Download PDF" button (generates the blob client-side and downloads it).
+  preview, the visuals, and the "Download PDF"/"Download Word" buttons.
 
 ## Field mapping (report label → source)
 

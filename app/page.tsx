@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { FacilityApiData } from "@/lib/mapping";
 import { buildReport, EMPTY_MANUAL, type ManualInputs } from "@/lib/report";
+import { MetricsVisuals } from "./components/MetricsVisuals";
 
 interface ApiResponse {
   ccn: string;
@@ -143,6 +144,8 @@ export default function Home() {
             </p>
           )}
         </form>
+
+        {api && report && <MetricsVisuals api={api} />}
 
         {api && report && (
           <div className="mt-8 grid gap-8 md:grid-cols-2">
