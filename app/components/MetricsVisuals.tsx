@@ -39,20 +39,20 @@ function RatingCard({ label, value }: { label: string; value: number | null }) {
   return (
     <div
       data-testid={`rating-card-${label}`}
-      className="rounded-lg border border-zinc-200 bg-white p-4"
+      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
-      <p className="text-xs font-medium text-zinc-500">{label}</p>
+      <p className="text-xs font-medium text-slate-500">{label}</p>
       {value === null ? (
-        <p className="mt-1 text-sm text-zinc-400">Not rated</p>
+        <p className="mt-1.5 text-sm text-slate-400">Not rated</p>
       ) : (
         <>
-          <p className="mt-1 text-2xl font-semibold text-zinc-900">
+          <p className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900">
             {value}
-            <span className="text-base font-normal text-zinc-400"> / 5</span>
+            <span className="text-base font-normal text-slate-400"> / 5</span>
           </p>
-          <div className="mt-2 h-1.5 w-full rounded bg-zinc-100">
+          <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
             <div
-              className="h-1.5 rounded bg-teal-700"
+              className="h-1.5 rounded-full bg-teal-700"
               style={{ width: `${(value / 5) * 100}%` }}
             />
           </div>
@@ -79,13 +79,13 @@ function ComparisonCard({ group }: { group: MetricGroup }) {
   return (
     <div
       data-testid={`viz-card-${group.title}`}
-      className="rounded-lg border border-zinc-200 bg-white p-4"
+      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
-      <p className="text-sm font-semibold text-zinc-800">{group.title}</p>
-      <p className="text-xs text-zinc-500">{unitLabel}</p>
+      <p className="text-sm font-semibold text-slate-800">{group.title}</p>
+      <p className="text-xs text-slate-500">{unitLabel}</p>
 
       {data.length === 0 ? (
-        <p className="mt-4 text-sm text-zinc-400">No data available</p>
+        <p className="mt-4 text-sm text-slate-400">No data available</p>
       ) : (
         <div className="mt-2" style={{ width: "100%", height: 132 }}>
           <ResponsiveContainer>
@@ -101,7 +101,7 @@ function ComparisonCard({ group }: { group: MetricGroup }) {
                 width={62}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 12, fill: "#52525b" }}
+                tick={{ fontSize: 12, fill: "#475569" }}
               />
               <Bar dataKey="value" barSize={16} radius={[0, 3, 3, 0]} isAnimationActive={false}>
                 {data.map((r) => (
@@ -110,7 +110,7 @@ function ComparisonCard({ group }: { group: MetricGroup }) {
                 <LabelList
                   dataKey="label"
                   position="right"
-                  style={{ fontSize: 11, fill: "#3f3f46" }}
+                  style={{ fontSize: 11, fill: "#334155" }}
                 />
               </Bar>
             </BarChart>
@@ -170,8 +170,8 @@ export function MetricsVisuals({ api }: { api: FacilityApiData }) {
   ];
 
   return (
-    <section data-testid="metrics-visuals" className="mt-8">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+    <section data-testid="metrics-visuals">
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
         Performance at a glance
       </h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -179,14 +179,33 @@ export function MetricsVisuals({ api }: { api: FacilityApiData }) {
           <RatingCard key={r.label} label={r.label} value={r.value} />
         ))}
       </div>
-      <p className="mt-5 mb-2 text-xs font-medium text-zinc-500">
-        Hospitalization &amp; ED — facility vs. national and state averages
-      </p>
+      <div className="mt-6 mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-medium text-slate-600">
+          Hospitalization &amp; ED — facility vs. national and state averages
+        </p>
+        <div className="flex items-center gap-3 text-[11px] text-slate-500">
+          <Legend color={FACILITY_COLOR} label="Facility" />
+          <Legend color={NATIONAL_COLOR} label="National" />
+          <Legend color={STATE_COLOR} label="State" />
+        </div>
+      </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {groups.map((g) => (
           <ComparisonCard key={g.title} group={g} />
         ))}
       </div>
     </section>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className="inline-block h-2.5 w-2.5 rounded-sm"
+        style={{ backgroundColor: color }}
+      />
+      {label}
+    </span>
   );
 }

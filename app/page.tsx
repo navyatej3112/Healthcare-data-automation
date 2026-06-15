@@ -15,6 +15,17 @@ interface ApiResponse {
 
 const CLIENT_TIMEOUT_MS = 25000;
 
+// Shared UI tokens — restrained, enterprise-grade styling.
+const inputClass =
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20";
+const primaryBtnClass =
+  "inline-flex items-center justify-center rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-600/30 disabled:cursor-not-allowed disabled:opacity-50";
+const secondaryBtnClass =
+  "inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-50";
+const cardClass = "rounded-xl border border-slate-200 bg-white shadow-sm";
+const sectionLabelClass =
+  "text-xs font-semibold uppercase tracking-wider text-slate-500";
+
 export default function Home() {
   const [ccn, setCcn] = useState("686123");
   const [loading, setLoading] = useState(false);
@@ -146,53 +157,67 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Branding banner — fixed brand name, never replaced by facility name. */}
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto max-w-5xl px-6 py-5 text-center">
-          <p className="text-sm font-semibold tracking-wide text-zinc-500">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-5xl flex-col items-center px-6 py-6 text-center">
+          <p className="text-xs font-semibold tracking-[0.12em] text-slate-400">
             INFINITE — Managed by MEDELITE
           </p>
-          <h1 className="mt-1 text-xl font-bold tracking-tight">
+          <h1 className="mt-2 text-xl font-semibold uppercase tracking-tight text-slate-900 sm:text-2xl">
             FACILITY ASSESSMENT SNAPSHOT
           </h1>
-          <p className="mt-0.5 text-sm font-medium text-zinc-600">
+          <span className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600">
             {api?.state ?? "—"}
-          </p>
+          </span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="mx-auto max-w-5xl space-y-6 px-6 py-8">
         {/* CCN lookup */}
-        <form onSubmit={handleLookup} className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="block text-xs font-medium text-zinc-600">CCN</label>
-            <input
-              value={ccn}
-              onChange={(e) => setCcn(e.target.value)}
-              placeholder="686123"
-              aria-label="CCN"
-              className="mt-1 w-40 rounded border border-zinc-300 px-3 py-2 font-mono"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+        <section className={`${cardClass} p-5`}>
+          <form
+            onSubmit={handleLookup}
+            className="flex flex-wrap items-end gap-3"
+            aria-busy={loading}
           >
-            {loading ? "Looking up…" : "Look up facility"}
-          </button>
-          {error && (
-            <p data-testid="error" className="text-sm text-red-600">
-              {error}
-            </p>
-          )}
-        </form>
+            <div>
+              <label
+                htmlFor="ccn-input"
+                className="block text-xs font-medium text-slate-600"
+              >
+                CCN
+              </label>
+              <input
+                id="ccn-input"
+                value={ccn}
+                onChange={(e) => setCcn(e.target.value)}
+                placeholder="686123"
+                aria-label="CCN"
+                className={`${inputClass} mt-1 w-44 font-mono tracking-wide`}
+              />
+            </div>
+            <button type="submit" disabled={loading} className={primaryBtnClass}>
+              {loading ? "Looking up…" : "Look up facility"}
+            </button>
+            {error && (
+              <p
+                data-testid="error"
+                className="self-center text-sm font-medium text-red-600"
+              >
+                {error}
+              </p>
+            )}
+          </form>
+          <p className="mt-2 text-xs text-slate-400">
+            Enter a 6-digit CMS Certification Number to pull the facility&apos;s public CMS data.
+          </p>
+        </section>
 
         {metricsNote && (
           <p
             data-testid="metrics-note"
-            className="mt-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
           >
             {metricsNote}
           </p>
@@ -201,21 +226,21 @@ export default function Home() {
         {api && report && <MetricsVisuals api={api} />}
 
         {api && report && (
-          <div className="mt-8 grid gap-8 md:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2">
             {/* Editable inputs */}
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                Inputs
-              </h2>
-              <div className="space-y-4">
+            <section className={cardClass}>
+              <div className="border-b border-slate-100 px-5 py-3">
+                <h2 className={sectionLabelClass}>Operational inputs</h2>
+              </div>
+              <div className="space-y-4 p-5">
                 <Field label="Name of Facility (override)">
                   <input
                     value={manual.nameOfFacility}
                     onChange={(e) => setField("nameOfFacility", e.target.value)}
                     aria-label="Name of Facility"
-                    className="w-full rounded border border-zinc-300 px-3 py-2"
+                    className={inputClass}
                   />
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     {nameIsOverridden ? (
                       <>Override active. API name: {api.nameOfFacility}</>
                     ) : (
@@ -230,7 +255,7 @@ export default function Home() {
                     onChange={(e) => setField("emr", e.target.value)}
                     aria-label="EMR"
                     placeholder="PCC"
-                    className="w-full rounded border border-zinc-300 px-3 py-2"
+                    className={inputClass}
                   />
                 </Field>
 
@@ -240,9 +265,9 @@ export default function Home() {
                     onChange={(e) => setField("currentCensus", e.target.value)}
                     inputMode="numeric"
                     aria-label="Current Census"
-                    className="w-full rounded border border-zinc-300 px-3 py-2"
+                    className={inputClass}
                   />
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     Defaulted from Avg. residents/day (
                     {api.averageResidentsPerDay ?? "—"}) rounded to{" "}
                     {api.currentCensusDefault ?? "—"}.
@@ -255,7 +280,7 @@ export default function Home() {
                     onChange={(e) => setField("typeOfPatient", e.target.value)}
                     aria-label="Type of Patient"
                     placeholder="Long-term & Short-term"
-                    className="w-full rounded border border-zinc-300 px-3 py-2"
+                    className={inputClass}
                   />
                 </Field>
 
@@ -266,7 +291,7 @@ export default function Home() {
                       setField("previousCoverage", e.target.value as "Yes" | "No")
                     }
                     aria-label="Previous Coverage from Medelite"
-                    className="w-full rounded border border-zinc-300 px-3 py-2"
+                    className={inputClass}
                   >
                     <option value="No">No</option>
                     <option value="Yes">Yes</option>
@@ -281,7 +306,7 @@ export default function Home() {
                     }
                     aria-label="Previous Provider Performance from Medelite"
                     placeholder="About 30 patients/day"
-                    className="w-full rounded border border-zinc-300 px-3 py-2"
+                    className={inputClass}
                   />
                 </Field>
 
@@ -291,24 +316,22 @@ export default function Home() {
                     onChange={(e) => setField("medicalCoverage", e.target.value)}
                     aria-label="Medical Coverage"
                     placeholder="Optometry, PCP, Podiatry"
-                    className="w-full rounded border border-zinc-300 px-3 py-2"
+                    className={inputClass}
                   />
                 </Field>
               </div>
             </section>
 
             {/* Mapped report preview */}
-            <section>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                  Mapped report preview
-                </h2>
+            <section className={cardClass}>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3">
+                <h2 className={sectionLabelClass}>Report preview</h2>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={handleDownloadPdf}
                     disabled={downloading}
-                    className="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                    className={secondaryBtnClass}
                   >
                     {downloading ? "Generating…" : "Download PDF"}
                   </button>
@@ -316,24 +339,24 @@ export default function Home() {
                     type="button"
                     onClick={handleDownloadDocx}
                     disabled={downloadingDocx}
-                    className="rounded bg-sky-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                    className={secondaryBtnClass}
                   >
                     {downloadingDocx ? "Generating…" : "Download Word"}
                   </button>
                 </div>
               </div>
-              <table className="w-full border-collapse text-sm">
-                <tbody>
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-slate-100">
                   {report.rows.map((row) => (
-                    <tr key={row.label} className="border-b border-zinc-200">
-                      <th className="w-1/2 py-2 pr-3 text-left align-top font-medium text-zinc-700">
+                    <tr key={row.label}>
+                      <th className="w-1/2 py-2.5 pl-5 pr-4 text-left align-top text-sm font-medium text-slate-600">
                         {row.label}
                       </th>
                       <td
                         data-testid={`preview-${row.label}`}
-                        className="py-2 align-top text-zinc-900"
+                        className="py-2.5 pr-5 align-top text-sm text-slate-900"
                       >
-                        {row.value || <span className="text-zinc-400">—</span>}
+                        {row.value || <span className="text-slate-400">—</span>}
                       </td>
                     </tr>
                   ))}
@@ -367,8 +390,8 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-zinc-600">{label}</label>
-      <div className="mt-1">{children}</div>
+      <label className="block text-xs font-medium text-slate-600">{label}</label>
+      <div className="mt-1.5">{children}</div>
     </div>
   );
 }
