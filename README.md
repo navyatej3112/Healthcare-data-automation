@@ -16,8 +16,8 @@ with manual operational inputs, and export a print-ready PDF. No database, no au
 - **Facility-name override** — defaults to the API name; a user edit takes precedence.
 - **Current Census** defaults from the API's average residents/day (rounded) but stays
   editable.
-- **One-click PDF export** matching the two-column snapshot layout, with the branding
-  banner and a clickable Medicare Care Compare link.
+- **One-click PDF and Word (.docx) export** — same content, row order, branding, and a
+  clickable Medicare Care Compare link. The .docx is fully editable (real text + table).
 - **12 Hospitalization/ED metrics** (bonus): short-stay (%) and long-stay (per-1000 rate)
   facility values plus their national and state averages.
 
@@ -49,6 +49,9 @@ curl 'http://localhost:3000/api/facility?ccn=686123'
 - **`app/pdf/FacilityPdf.tsx`** — `@react-pdf/renderer` document: branding banner, two-column
   label/value table, clickable Medicare `Link`. Loaded dynamically on download click, so it
   never runs on the server and stays out of the initial bundle.
+- **`app/docx/FacilityDocx.ts`** — `docx` document: same content as an editable Word file
+  (real text + table + `ExternalHyperlink`). Also loaded dynamically on click. `@react-pdf/renderer`
+  and `docx` are runtime dependencies but kept off the critical path via lazy import.
 - **`app/page.tsx`** — client component: CCN lookup, manual inputs, name override, live
   preview, and the "Download PDF" button (generates the blob client-side and downloads it).
 

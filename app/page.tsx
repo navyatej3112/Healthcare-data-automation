@@ -18,6 +18,7 @@ export default function Home() {
   const [api, setApi] = useState<FacilityApiData | null>(null);
   const [manual, setManual] = useState<ManualInputs>(EMPTY_MANUAL);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
 
   async function handleLookup(e: React.FormEvent) {
     e.preventDefault();
@@ -79,16 +80,23 @@ export default function Home() {
         import("./pdf/FacilityPdf"),
       ]);
       const blob = await pdf(<FacilityPdf report={report} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Facility_Assessment_Snapshot_${api.ccn}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      triggerDownload(blob, `Facility_Assessment_Snapshot_${api.ccn}.pdf`);
     } finally {
       setDownloading(false);
+    }
+  }
+
+  // Generate an editable .docx on the client from the same report, dynamically
+  // importing `docx` so it stays off the initial bundle.
+  async function handleDownloadDocx() {
+    if (!api || !report) return;
+    setDownloadingDocx(true);
+    try {
+      const { generateFacilityDocxBlob } = await import("./docx/FacilityDocx");
+      const blob = await generateFacilityDocxBlob(report);
+      triggerDownload(blob, `Facility_Assessment_Snapshot_${api.ccn}.docx`);
+    } finally {
+      setDownloadingDocx(false);
     }
   }
 
@@ -239,14 +247,24 @@ export default function Home() {
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
                   Mapped report preview
                 </h2>
-                <button
-                  type="button"
-                  onClick={handleDownloadPdf}
-                  disabled={downloading}
-                  className="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                >
-                  {downloading ? "Generating…" : "Download PDF"}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadPdf}
+                    disabled={downloading}
+                    className="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                  >
+                    {downloading ? "Generating…" : "Download PDF"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownloadDocx}
+                    disabled={downloadingDocx}
+                    className="rounded bg-sky-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                  >
+                    {downloadingDocx ? "Generating…" : "Download Word"}
+                  </button>
+                </div>
               </div>
               <table className="w-full border-collapse text-sm">
                 <tbody>
@@ -271,6 +289,17 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function Field({

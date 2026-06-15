@@ -40,7 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# verification harness — generated bundles, screenshots, sample PDFs (regenerable)
+# verification harness — generated bundles + sample outputs (regenerable)
 /verification/dist/
 /verification/*.png
 /verification/*.pdf
+/verification/*.docx
